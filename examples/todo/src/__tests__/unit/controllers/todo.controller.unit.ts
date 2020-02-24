@@ -3,24 +3,26 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
-import {Filter} from '@loopback/repository';
+import { Filter } from '@loopback/repository';
 import {
   createStubInstance,
   expect,
   sinon,
   StubbedInstanceWithSinonAccessor,
 } from '@loopback/testlab';
-import {TodoController} from '../../../controllers';
-import {Todo} from '../../../models/index';
-import {TodoRepository} from '../../../repositories';
-import {Geocoder} from '../../../services';
-import {aLocation, givenTodo} from '../../helpers';
+import { TodoController } from '../../../controllers';
+import { Todo } from '../../../models/index';
+import { TodoRepository } from '../../../repositories';
+import { Geocoder, FileUpload } from '../../../services';
+import { aLocation, givenTodo } from '../../helpers';
 
 describe('TodoController', () => {
   let todoRepo: StubbedInstanceWithSinonAccessor<TodoRepository>;
   let geoService: Geocoder;
+  let fileUpload: FileUpload
 
   let geocode: sinon.SinonStub;
+  let uploadFile: sinon.SinonStub;
 
   /*
   =============================================================================
@@ -54,7 +56,7 @@ describe('TodoController', () => {
       const create = todoRepo.stubs.create;
       geocode.resolves([aLocation.geopoint]);
 
-      const input = givenTodo({remindAtAddress: aLocation.address});
+      const input = givenTodo({ remindAtAddress: aLocation.address });
 
       const expected = new Todo(input);
       Object.assign(expected, {
@@ -100,7 +102,7 @@ describe('TodoController', () => {
 
     it('uses the provided filter', async () => {
       const find = todoRepo.stubs.find;
-      const filter: Filter<Todo> = {where: {isComplete: false}};
+      const filter: Filter<Todo> = { where: { isComplete: false } };
 
       find.resolves(aListOfTodos);
       await controller.findTodos(filter);
@@ -153,9 +155,12 @@ describe('TodoController', () => {
       title: 'Do some important things',
     });
 
-    geoService = {geocode: sinon.stub()};
+    geoService = { geocode: sinon.stub() };
     geocode = geoService.geocode as sinon.SinonStub;
 
-    controller = new TodoController(todoRepo, geoService);
+    fileUpload = { uploadFile: sinon.stub() }
+    uploadFile = fileUpload.uploadFile as sinon.SinonStub;
+
+    controller = new TodoController(todoRepo, geoService, fileUpload);
   }
 });

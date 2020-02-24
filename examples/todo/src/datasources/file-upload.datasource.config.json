@@ -1,0 +1,26 @@
+{
+  "name": "file_upload",
+  "connector": "rest",
+  "baseURL": "http://www.example.com/",
+  "crud": false,
+  "operations": [
+    {
+      "template": {
+        "method": "POST",
+        "url": "http://www.example.com/upload-file",
+        "headers": {
+          "Content-Type": "multipart/form-data",
+          "Connection": "keep-alive"
+        },
+        "formData": {
+          "file": "{file}"
+        }
+      },
+      "functions": {
+        "uploadCSV": [
+          "file"
+        ]
+      }
+    }
+  ]
+}

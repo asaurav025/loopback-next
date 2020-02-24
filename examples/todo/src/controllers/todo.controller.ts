@@ -3,8 +3,8 @@
 // This file is licensed under the MIT License.
 // License text available at https://opensource.org/licenses/MIT
 
-import {inject} from '@loopback/core';
-import {Filter, repository} from '@loopback/repository';
+import { inject } from '@loopback/core';
+import { Filter, repository } from '@loopback/repository';
 import {
   del,
   get,
@@ -16,22 +16,27 @@ import {
   post,
   put,
   requestBody,
+  Request,
+  Response,
+  RestBindings,
 } from '@loopback/rest';
-import {Todo} from '../models';
-import {TodoRepository} from '../repositories';
-import {Geocoder} from '../services';
+import { Todo } from '../models';
+import { TodoRepository } from '../repositories';
+import { Geocoder, FileUpload } from '../services';
+import multer = require('multer');
 
 export class TodoController {
   constructor(
     @repository(TodoRepository) protected todoRepository: TodoRepository,
     @inject('services.Geocoder') protected geoService: Geocoder,
-  ) {}
+    @inject('services.FileUpload') protected fileUpload: FileUpload,
+  ) { }
 
   @post('/todos', {
     responses: {
       '200': {
         description: 'Todo model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Todo)}},
+        content: { 'application/json': { schema: getModelSchemaRef(Todo) } },
       },
     },
   })
@@ -39,7 +44,7 @@ export class TodoController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Todo, {title: 'NewTodo', exclude: ['id']}),
+          schema: getModelSchemaRef(Todo, { title: 'NewTodo', exclude: ['id'] }),
         },
       },
     })
@@ -62,11 +67,48 @@ export class TodoController {
     return this.todoRepository.create(todo);
   }
 
+  @post('/todos/file-upload', {
+    responses: {
+      '200': {
+        description: 'Todo model instance',
+      },
+    },
+  })
+  async uploadFile(
+    @requestBody({
+      content: {
+        'multipart/form-data': {
+          'x-parser': 'stream',
+          schema: { type: 'object' },
+        },
+      }
+    })
+    request: Request,
+    @inject(RestBindings.Http.RESPONSE)
+    response: Response,
+  ): Promise<Todo> {
+    const storage = multer.memoryStorage();
+    const upload = multer({ storage });
+    let file = await new Promise<object>((resolve, reject) => {
+      upload.single("file.txt")(request, response, err => {
+        if (err) reject(err);
+        else {
+          resolve({
+            file: request.file,
+            fields: (request as any).fields,
+          });
+        }
+      });
+    });
+
+    return this.fileUpload.uploadFile(file);
+  }
+
   @get('/todos/{id}', {
     responses: {
       '200': {
         description: 'Todo model instance',
-        content: {'application/json': {schema: getModelSchemaRef(Todo)}},
+        content: { 'application/json': { schema: getModelSchemaRef(Todo) } },
       },
     },
   })
@@ -83,7 +125,7 @@ export class TodoController {
         description: 'Array of Todo model instances',
         content: {
           'application/json': {
-            schema: {type: 'array', items: getModelSchemaRef(Todo)},
+            schema: { type: 'array', items: getModelSchemaRef(Todo) },
           },
         },
       },
@@ -122,7 +164,7 @@ export class TodoController {
     @requestBody({
       content: {
         'application/json': {
-          schema: getModelSchemaRef(Todo, {partial: true}),
+          schema: getModelSchemaRef(Todo, { partial: true }),
         },
       },
     })
